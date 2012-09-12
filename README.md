@@ -52,6 +52,4 @@ The ability to share instances between models in an inheritance chain is a featu
 
 ## Inspriation
 
-This is inspired by SoundCloud's approach detailed in [Building the Next SoundCloud][next-soundcloud] under "Sharing Models between Views."
-
-[next-soundcloud] http://backstage.soundcloud.com/2012/06/building-the-next-soundcloud/
+This is inspired by SoundCloud's approach detailed in [Building the Next SoundCloud](http://backstage.soundcloud.com/2012/06/building-the-next-soundcloud/) under "Sharing Models between Views."
