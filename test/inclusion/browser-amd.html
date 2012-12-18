@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>RequireJS Browser Test</title>
+</head>
+<body>
+    <h1>...</h1>
+    <script src="http://cdnjs.cloudflare.com/ajax/libs/require.js/2.1.1/require.min.js"></script>
+    <script>
+        require.config({
+            paths: {
+                jquery: 'http://ajax.googleapis.com/ajax/libs/jquery/1.8.3/jquery.min',
+                underscore: 'http://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.4.2/underscore-min',
+                backbone: 'http://cdnjs.cloudflare.com/ajax/libs/backbone.js/0.9.2/backbone-min',
+                'backbone-model-factory': '../../backbone-model-factory'
+            },
+            shim: {
+                underscore: {
+                    exports: '_'
+                },
+                backbone: {
+                    deps: ['jquery', 'underscore'],
+                    exports: 'Backbone'
+                }
+            }
+        });
+
+        require(['backbone-model-factory'], function (Backbone) {
+            if (Backbone && Backbone.VERSION && Backbone.ModelFactory) {
+                document.getElementsByTagName('h1')[0].innerHTML = 'It worked!';
+            }
+        });
+    </script>
+</body>
+</html>

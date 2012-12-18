@@ -1,0 +1,21 @@
+{
+  "name": "backbone-model-factory",
+  "version": "0.0.0",
+  "description": "Provides a factory for generating model constructors that will never produce multiple instances of a model with the same unique identifier.",
+  "main": "backbone-model-factory.js",
+  "scripts": {
+    "test": ""
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/misteroneill/backbone-model-factory.git"
+  },
+  "keywords": [
+    "backbone",
+    "duplicate",
+    "persistence",
+    "sharing"
+  ],
+  "author": "Pat O'Neill <pgoneill@gmail.com>",
+  "license": "MIT"
+}

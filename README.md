@@ -50,6 +50,12 @@ Currently, models created with `Backbone.ModelFactory` will *not* share their un
 
 The ability to share instances between models in an inheritance chain is a feature which is actively being considered, but it leaves a lot of open questions.
 
+## Tests
+
+### Inclusion
+
+There are 3 files in `/test/inclusion` and they account for the 3 supported methods of including this module: Node, AMD/RequireJS, and normal browser globals. To execute these tests, simply open the HTML files in a browser or install the npm module `backbone` and run `node node-module.js`.
+
 ## Inspriation
 
 This is inspired by SoundCloud's approach detailed in [Building the Next SoundCloud](http://backstage.soundcloud.com/2012/06/building-the-next-soundcloud/) under "Sharing Models between Views."
