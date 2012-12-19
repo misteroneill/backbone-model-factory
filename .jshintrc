@@ -1,0 +1,29 @@
+{
+    "predef": [
+        "exports",
+        "module",
+        "require",
+        "define"
+    ],
+
+    "bitwise": true,
+    "curly": true,
+    "eqeqeq": true,
+    "forin": true,
+    "immed": true,
+    "latedef": true,
+    "newcap": true,
+    "noarg": true,
+    "plusplus": false,
+    "regexp": false,
+    "undef": true,
+    "strict": true,
+    "trailing": true,
+
+    "evil": false,
+    "sub": false,
+
+    "browser": false,
+    "devel": false,
+    "wsh": false
+}

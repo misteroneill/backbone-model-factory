@@ -1,4 +1,10 @@
-/*global exports module require define*/
+/*!
+    Backbone Model Factory 1.0.0
+
+    (c) 2012 Patrick G. O'Neill
+    Backbone Model Factory may be freely distributed under the MIT license
+    https://github.com/misteroneill/backbone-model-factory
+*/
 (function (root, factory) {
   'use strict';
 
@@ -109,6 +115,8 @@
       really defers back to Model and creates instances only as needed.
 
       @author Pat O'Neill <pgoneill@gmail.com>
+      @since 1.0.0
+      @version 1.0.0
       @param {Object} [attrs]
     */
     function Constructor(attrs) {
@@ -150,6 +158,8 @@
       instanceof checks.
 
       @author Pat O'Neill <patricko@kindlingapp.com>
+      @since 1.0.0
+      @version 1.0.0
       @example
         var Foo = Backbone.ModelFactory();
         var foo = new Foo();
@@ -170,6 +180,8 @@
       models) will not be stored in cache until they gain a value!
 
       @author Pat O'Neill <patricko@kindlingapp.com>
+      @since 1.0.0
+      @version 1.0.0
       @example
         var Foo = Backbone.ModelFactory();
         var foo = new Foo({id: 1});
