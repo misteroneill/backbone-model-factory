@@ -2,6 +2,7 @@ var assert = require('assert');
 var Backbone = require('../backbone-model-factory');
 
 describe('Backbone.ModelFactory', function () {
+  'use strict';
 
   var Test = Backbone.ModelFactory({
     defaults: {
@@ -11,6 +12,8 @@ describe('Backbone.ModelFactory', function () {
       return true;
     }
   });
+
+  var TestBare = Backbone.ModelFactory();
 
   var TestCustomIdAttr = Backbone.ModelFactory({
     idAttribute: 'foo'
@@ -97,6 +100,15 @@ describe('Backbone.ModelFactory', function () {
 
       test.set('id', 4);
       assert.strictEqual(Test.Model.cache['4'], test);
+    });
+
+    it('throw an error when a model gains an idAttribute attribute value which already exists', function () {
+      var test1 = new Test({id: 5});
+      var test2 = new Test();
+
+      assert.throws(function () {
+        test2.set('id', 5);
+      }, Error);
     });
 
     it('store a model when a new model with a custom idAttribute gains an idAttribute attribute value that did not exist', function () {

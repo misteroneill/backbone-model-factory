@@ -1,5 +1,5 @@
 /*!
-    Backbone Model Factory 1.0.0
+    Backbone Model Factory 1.1.0
 
     (c) 2012 Patrick G. O'Neill
     Backbone Model Factory may be freely distributed under the MIT license
@@ -8,17 +8,14 @@
 (function (root, factory) {
   'use strict';
 
-  var UNDEFINED = 'undefined';
-  var BACKBONE = 'backbone';
-
   // CommonJS/NodeJS
-  if (typeof exports !== UNDEFINED && typeof module !== UNDEFINED && module.exports) {
-    exports = module.exports = require(BACKBONE);
+  if (typeof exports !== 'undefined' && typeof module !== 'undefined' && module.exports) {
+    exports = module.exports = require('backbone');
     factory(exports);
 
   // AMD/RequireJS
   } else if (typeof define === 'function' && define.amd) {
-    define([BACKBONE], factory);
+    define(['backbone'], factory);
 
   // Browser global object
   } else {
@@ -28,18 +25,25 @@
 })(this, function (Backbone) {
   'use strict';
 
-  var FUNCTION = 'function';
-  var OBJECT = 'object';
-  var NULL = null;
-
   /**
     A function which is bound to the first change of a model's idAttribute
-    attribute. Will break if the first change of a model's idAttribute attribute
-    value is falsy - but you wouldn't do that, would you? :)
+    attribute value. Note that this function is optimistic and will allow
+    _any_ value to be set - it does not want to assume anything about what sort
+    of value to store as the idAttribute attribute.
+
+    The only limitation is that this method will throw an error if you are
+    supplying an ID which already exists, for example:
+
+      var Model = Backbone.ModelFactory();
+      var a = new Model({id: 1});
+      var b = new Model(); // (a === b) === false
+
+      b.set('id', 1); // throws error
+
+    The reason for this behavior is that there is no way to change the object
+    referenced by `b` from a change listener!
 
     @author Pat O'Neill <pgoneill@gmail.com>
-    @since 1.0.0
-    @version 1.0.0
     @private
     @memberof Backbone.ModelFactory
     @param {Object} model
@@ -48,25 +52,21 @@
       The new value of the idAttribute attribute.
   */
   function checkId(model, value) {
-    var key = ''+value,
-        idAttribute = model.idAttribute,
-        cache = model.constructor.cache;
+    var key = ''+value;
+    var cache = model.constructor.cache;
 
     // Backward-compatibility with Backbone pre-0.9.9
     if (!model.once) {
-      model.off('change:' + idAttribute, checkId);
+      model.off('change:' + model.idAttribute, checkId);
     }
 
-    // Only accept truthy values.
-    if (value) {
-      if (cache.hasOwnProperty(key)) {
+    if (cache.hasOwnProperty(key)) {
 
-        // This should not happen unless you're doing something really strange
-        // with your idAttribute attribute values!
-        throw new Error('model idAttribute attribute value already exists in cache');
-      } else {
-        cache[key] = model;
-      }
+      // This should not happen unless you're doing something really strange
+      // with your idAttribute attribute values!
+      throw new Error('model idAttribute attribute value already exists in cache');
+    } else {
+      cache[key] = model;
     }
   }
 
@@ -76,8 +76,6 @@
     value for the `idAttribute` attribute.
 
     @author Pat O'Neill <pgoneill@gmail.com>
-    @since 1.0.0
-    @version 1.0.0
     @example
         var Foo = Backbone.ModelFactory();
         var foo1 = new Foo({id: 1});
@@ -101,34 +99,33 @@
         A model constructor.
   */
   Backbone.ModelFactory = function (Base, prototype) {
-    prototype = typeof Base === OBJECT ? Base : (typeof prototype === OBJECT ? prototype : NULL);
+    prototype = typeof Base === 'object' ? Base : (typeof prototype === 'object' ? prototype : null);
 
-    var BaseConstructor = typeof Base === FUNCTION ?
-          // Support both models generated with ModelFactory or via normal means.
-          (Base.hasOwnProperty('Model') ? Base.Model : Base) :
-          Backbone.Model,
-        Model = BaseConstructor.extend(prototype),
-        cache = {};
+    var BaseConstructor = typeof Base === 'function' ?
+      // Support both models generated with ModelFactory or via normal means.
+      (Base.hasOwnProperty('Model') ? Base.Model : Base) :
+      Backbone.Model;
+
+    var Model = BaseConstructor.extend(prototype);
+    var cache = {};
 
     /**
       Return a factory function which is treated like a constructor, but
       really defers back to Model and creates instances only as needed.
 
       @author Pat O'Neill <pgoneill@gmail.com>
-      @since 1.0.0
-      @version 1.0.0
       @param {Object} [attrs]
     */
     function Constructor(attrs) {
-      attrs = typeof attrs === OBJECT ? attrs : NULL;
+      attrs = typeof attrs === 'object' ? attrs : null;
 
-      var idAttribute = Model.prototype.idAttribute,
-          hasId = attrs !== NULL && attrs.hasOwnProperty(idAttribute),
-          key = hasId && ''+attrs[idAttribute],
-          exists = key && cache.hasOwnProperty(key),
+      var idAttribute = Model.prototype.idAttribute;
+      var hasId = attrs !== null && attrs.hasOwnProperty(idAttribute);
+      var key = hasId && ''+attrs[idAttribute];
+      var exists = key && cache.hasOwnProperty(key);
 
           // Use any cached model or instantiate a new one.
-          model = exists ? cache[key] : new Model(attrs);
+      var model = exists ? cache[key] : new Model(attrs);
 
       // If there is no match in the cache, store the new model.
       if (!exists) {
@@ -158,8 +155,6 @@
       instanceof checks.
 
       @author Pat O'Neill <patricko@kindlingapp.com>
-      @since 1.0.0
-      @version 1.0.0
       @example
         var Foo = Backbone.ModelFactory();
         var foo = new Foo();
@@ -180,8 +175,6 @@
       models) will not be stored in cache until they gain a value!
 
       @author Pat O'Neill <patricko@kindlingapp.com>
-      @since 1.0.0
-      @version 1.0.0
       @example
         var Foo = Backbone.ModelFactory();
         var foo = new Foo({id: 1});
