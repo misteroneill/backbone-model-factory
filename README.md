@@ -1,8 +1,8 @@
 # Backbone.ModelFactory
 
-Provides a factory for generating model constructors which will never produce multiple instances of a model with the same unique identifier. It allows a developer to manage model sharing between views more easily by maintaining an internal cache of model instances based on the value of their `idAttribute` property.
+Provides a factory for generating model constructors which will never produce multiple instances of a model with the same unique identifier.
 
-In short, when you create a new instance of a model created with `Backbone.ModelFactory` and give it an `id` it will never create duplicate instances of the same model with a given `id`.
+When you create a new instance of a model created with `Backbone.ModelFactory` and give it an `id` it will never create duplicate instances of the same model with a given `id`.
 
     var user1 = new User({id: 1});
     var user2 = new User({id: 1});
@@ -10,6 +10,16 @@ In short, when you create a new instance of a model created with `Backbone.Model
 
     console.log(user1 === user2); // true
     console.log(user3 === user1); // false
+
+## Benefits
+
+When architecting loosely-coupled web applications, it is generally considered a good practice for modules which control separate pieces of functionality to not rely on each other. `Backbone.ModelFactory` helps with that!
+
+Views or modules can generate instances of any given object and those instances will always refer to the same object in memory. Using `Backbone.ModelFactory` models, you can eliminate the need to pass instances around manually - worse - maintain a manual cache of model instances.
+
+Additionally, collections that `fetch` data will always be populated by existing model instances if they exist. This prevents creating multiple model instances which represent the same resource.
+
+`Backbone.ModelFactory` makes sharing models between collections, views, or any other script/module almost completely hands-off.
 
 ## Inclusion
 
