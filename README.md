@@ -21,6 +21,10 @@ Additionally, collections that `fetch` data will always be populated by existing
 
 `Backbone.ModelFactory` makes sharing models between collections, views, or any other script/module almost completely hands-off.
 
+## Potential Gotchas
+
+If you are doing any sort of models/collections-within-models recursive relationships - and then serializing those relationships - you can run into some complex recursion-related problems. I have not tried this library with Backbone-Relational, but when I have a chance I will update these docs.
+
 ## Inclusion
 
 `Backbone.ModelFactory` supports three methods of inclusion.
