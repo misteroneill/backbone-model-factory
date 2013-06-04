@@ -116,7 +116,7 @@
       @author Pat O'Neill <pgoneill@gmail.com>
       @param {Object} [attrs]
     */
-    function Constructor(attrs) {
+    function Constructor(attrs, options) {
       attrs = typeof attrs === 'object' ? attrs : null;
 
       var idAttribute = Model.prototype.idAttribute;
@@ -125,7 +125,7 @@
       var exists = key && cache.hasOwnProperty(key);
 
           // Use any cached model or instantiate a new one.
-      var model = exists ? cache[key] : new Model(attrs);
+      var model = exists ? cache[key] : new Model(attrs, options);
 
       // If there is no match in the cache, store the new model.
       if (!exists) {
@@ -134,7 +134,7 @@
       // If there is a match in the cache, update its attributes based on the
       // passed-in attributes.
       } else {
-        model.set(attrs);
+        model.set(attrs, options);
       }
 
       // If no value for the idAttribute attribute was supplied, add a check
