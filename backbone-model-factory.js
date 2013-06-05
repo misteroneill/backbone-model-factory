@@ -134,7 +134,7 @@
       // If there is a match in the cache, update its attributes based on the
       // passed-in attributes.
       } else {
-        model.set(attrs, options);
+        model.set(options && options.parse ? model.parse(attrs, options) : attrs, options);
       }
 
       // If no value for the idAttribute attribute was supplied, add a check
