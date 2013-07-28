@@ -1,7 +1,7 @@
 /*!
     Backbone Model Factory 1.1.0
 
-    (c) 2012 Patrick G. O'Neill
+    (c) 2013 Patrick G. O'Neill
     Backbone Model Factory may be freely distributed under the MIT license
     https://github.com/misteroneill/backbone-model-factory
 */
