@@ -1,4 +1,4 @@
-/*global Backbone:false, describe:false, it:false, expect:false */
+/*global Backbone:false, sinon:false, describe:false, it:false, expect:false, waitsFor:false, runs:false */
 describe('Backbone.ModelFactory', function () {
   'use strict';
 
@@ -24,7 +24,8 @@ describe('Backbone.ModelFactory', function () {
   });
 
   var TestCollection = Backbone.Collection.extend({
-    model: Test
+    model: Test,
+    url: 'test-fetch'
   });
 
   it('creates constructor functions', function () {
@@ -141,6 +142,38 @@ describe('Backbone.ModelFactory', function () {
 
       expect(model.constructor).toBe(Test.Model);
       expect(model.methodOnTest).toBe(Test.Model.prototype.methodOnTest);
+    });
+
+    it('are able to be fetched from the server (#5)', function () {
+      var server = sinon.fakeServer.create();
+
+      server.autoRespond = true;
+      server.autoRespondAfter = 50;
+
+      server.respondWith(/test-fetch/, function (xhr) {
+        var results = [];
+
+        xhr.respond(
+          200,
+          {'Content-Type': 'application/json'},
+          JSON.stringify([
+            {id: 1, foo: 'test1'},
+            {id: 2, foo: 'test2'}
+          ])
+        );
+      });
+
+      var collection = new TestCollection();
+      var request = collection.fetch();
+
+      waitsFor(function () {
+        return request.status === 200;
+      }, 'the request to return', 200);
+
+      runs(function () {
+        expect(collection.length).toBe(2);
+        expect(collection.at(0).get('foo')).toBe('test1');
+      });
     });
   });
 });
