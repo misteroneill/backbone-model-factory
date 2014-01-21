@@ -1,9 +1,11 @@
 /*!
-    Backbone Model Factory 1.1.0
+  Backbone Model Factory 1.2.0
 
-    (c) 2013 Patrick G. O'Neill
-    Backbone Model Factory may be freely distributed under the MIT license
-    https://github.com/misteroneill/backbone-model-factory
+  Depends on: Backbone 0.9.9 - 1.1.0, Underscore
+
+  (c) 2014 Patrick G. O'Neill
+  Backbone Model Factory may be freely distributed under the MIT license
+  https://github.com/misteroneill/backbone-model-factory
 */
 (function (root, factory) {
   'use strict';
@@ -11,19 +13,33 @@
   // CommonJS/NodeJS
   if (typeof exports !== 'undefined' && typeof module !== 'undefined' && module.exports) {
     exports = module.exports = require('backbone');
-    factory(exports);
+    factory(require('underscore'), exports);
 
   // AMD/RequireJS
   } else if (typeof define === 'function' && define.amd) {
-    define(['backbone'], factory);
+    define(['underscore', 'backbone'], factory);
 
   // Browser global object
   } else {
-    factory(root.Backbone);
+    factory(root._, root.Backbone);
   }
 
-})(this, function (Backbone) {
+})(this, function (_, Backbone) {
   'use strict';
+
+  var methods = {
+
+    /**
+      Removes a model instance from its constructor's cache. Will exist on the
+      `prototype` chain of all model instances generated from
+      `Backbone.ModelFactory` constructors.
+    */
+    wipe: function () {
+      if (_.isObject(this.constructor._cache)) {
+        delete this.constructor._cache[''+this.get(this.idAttribute)];
+      }
+    }
+  };
 
   /**
     A function which is bound to the first change of a model's idAttribute
@@ -43,7 +59,6 @@
     The reason for this behavior is that there is no way to change the object
     referenced by `b` from a change listener!
 
-    @author Pat O'Neill <pgoneill@gmail.com>
     @private
     @memberof Backbone.ModelFactory
     @param {Object} model
@@ -52,18 +67,13 @@
       The new value of the idAttribute attribute.
   */
   function checkId(model, value) {
-    var key = ''+value;
-    var cache = model.constructor.cache;
+    var key = ''+model.get(model.idAttribute);
+    var cache = model.constructor._cache;
 
-    // Backward-compatibility with Backbone pre-0.9.9
-    if (!model.once) {
-      model.off('change:' + model.idAttribute, checkId);
-    }
-
-    if (cache.hasOwnProperty(key)) {
+    if (_.has(cache, key)) {
 
       // This should not happen unless you're doing something really strange
-      // with your idAttribute attribute values!
+      // with your `idAttribute` attribute values!
       throw new Error('model idAttribute attribute value already exists in cache');
     } else {
       cache[key] = model;
@@ -75,7 +85,6 @@
     which will enforce the existence of only a single object with any given
     value for the `idAttribute` attribute.
 
-    @author Pat O'Neill <pgoneill@gmail.com>
     @example
         var Foo = Backbone.ModelFactory();
         var foo1 = new Foo({id: 1});
@@ -99,36 +108,46 @@
         A model constructor.
   */
   Backbone.ModelFactory = function (Base, prototype) {
-    prototype = typeof Base === 'object' ? Base : (typeof prototype === 'object' ? prototype : null);
+    var Model, cache;
 
-    var BaseConstructor = typeof Base === 'function' ?
+    prototype = _.extend(
+      {},
+      methods,
+
+      // Support prototype object passed as first or second argument (or not
+      // at all).
+      _.isObject(Base) && !_.isFunction(Base) ? Base : (_.isObject(prototype) ? prototype : null)
+    );
+
+    Base = _.isFunction(Base) ?
+
       // Support both models generated with ModelFactory or via normal means.
-      (Base.hasOwnProperty('Model') ? Base.Model : Base) :
+      (_.has(Base, '_Model') ? Base._Model : Base) :
       Backbone.Model;
 
-    var Model = BaseConstructor.extend(prototype);
-    var cache = {};
+    Model = Base.extend(prototype);
 
     /**
       Return a factory function which is treated like a constructor, but
       really defers back to Model and creates instances only as needed.
 
-      @author Pat O'Neill <pgoneill@gmail.com>
       @param {Object} [attrs]
     */
     function Constructor(attrs, options) {
-      attrs = typeof attrs === 'object' ? attrs : null;
+      attrs = _.isObject(attrs) ? attrs : null;
 
       var idAttribute = Model.prototype.idAttribute;
-      var hasId = attrs !== null && attrs.hasOwnProperty(idAttribute);
+      var hasId = attrs !== null && _.has(attrs, idAttribute);
       var key = hasId && ''+attrs[idAttribute];
-      var exists = key && cache.hasOwnProperty(key);
+      var exists = key && _.has(cache, key);
 
-          // Use any cached model or instantiate a new one.
+      // Use any cached model or instantiate a new one.
       var model = exists ? cache[key] : new Model(attrs, options);
 
+      model.constructor = Constructor;
+
       // If there is no match in the cache, store the new model.
-      if (!exists) {
+      if (key && !exists) {
         cache[key] = model;
 
       // If there is a match in the cache, update its attributes based on the
@@ -137,12 +156,10 @@
         model.set(options && options.parse ? model.parse(attrs, options) : attrs, options);
       }
 
-      // If no value for the idAttribute attribute was supplied, add a check
-      // for when the model gets one.
+      // If no value for the idAttribute was supplied, add a check for when the
+      // model gets one.
       if (!hasId) {
-
-        // Backward-compatibility with Backbone pre-0.9.9
-        model[model.once ? 'once' : 'on']('change:' + idAttribute, checkId);
+        model.once('change:' + idAttribute, checkId);
       }
 
       // This is the magic part - if a constructor returns an object, a new
@@ -151,37 +168,78 @@
     }
 
     /**
-      A public reference to the actual model on the constructor. Use this for
-      instanceof checks.
+      A reference to the actual model on the constructor.
 
-      @author Pat O'Neill <patricko@kindlingapp.com>
       @example
         var Foo = Backbone.ModelFactory();
         var foo = new Foo();
 
         console.log(foo instanceof Foo.Model); // true
     */
-    Constructor.Model = Model;
+    Constructor._Model = Model;
+
 
     /**
-      A public reference to the cache of models generated by this constructor.
-      Since garbage collection will NOT clear model instances created by model
-      factory constructors, it may be useful to delete unneeded models from this
-      object directly.
+      Since garbage collection will _not_ clear model instances created by model
+      factory constructors, it may be useful to uncache model instances which
+      are no longer needed from this object directly - or use the `wipe` method
+      on the constructor or the model itself.
 
       Model instances are stored under the value of their `idAttribute` - for
       example, by default they will be stored using the value of their `id`
-      attribute. Models without an `idAttribute` value will (i.e. newly created
-      models) will not be stored in cache until they gain a value!
+      attribute. Models without an `idAttribute` value (i.e. newly created
+      models) will not be stored in cache until they gain an `idAttribute`
+      value.
 
-      @author Pat O'Neill <patricko@kindlingapp.com>
       @example
         var Foo = Backbone.ModelFactory();
         var foo = new Foo({id: 1});
 
-        delete Foo.Model.cache['1'];
+        Foo.wipe(foo);
+
+        var bar = new Foo({id: 1});
+        console.log(bar === foo); // false
+        bar.wipe();
+
+        var baz = new Foo();
+        baz.set({id: 2});
+        console.log(new Foo({id: 2}) === baz); // true
     */
-    Constructor.Model.cache = cache;
+    cache = Constructor._cache = {};
+
+    /**
+      The `Constructor` and `Constructor.Model` share `prototype`s so that
+      `instanceof` checks can support either function.
+
+      @example
+        var Foo = Backbone.ModelFactory();
+        var foo = new Foo();
+
+        console.log(foo instanceof Foo.Model); // true
+        console.log(foo instanceof Foo); // true
+    */
+    Constructor.prototype = Model.prototype;
+
+    /**
+      Remove a model instance, a subset of instances, or _all_ instances from
+      this constructor's cache.
+
+      @param {Object|Backbone.Collection|Array|undefined} models
+        Pass a single model instance, an array of instances, or a collection to
+        wipe only those instances from the cache.
+
+        Pass nothing (or any `falsy` value) to wipe _all_ models from the cache.
+    */
+    Constructor.wipe = function (models) {
+      models = models instanceof Backbone.Collection ? models.models : models;
+      if (!models || _.isArray(models)) {
+        _.invoke(models || _.values(this._cache), 'wipe');
+      } else if (_.isObject(models)) {
+        models.wipe();
+      } else {
+        throw new Error('invalid argument');
+      }
+    };
 
     return Constructor;
   };
