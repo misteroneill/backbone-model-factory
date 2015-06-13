@@ -1,9 +1,9 @@
 /*!
   Backbone Model Factory 1.2.0
 
-  Depends on: Backbone 0.9.9 - 1.1.0, Underscore
+  Depends on: Backbone 0.9.9 - 1.2.1, Underscore
 
-  (c) 2014 Patrick G. O'Neill
+  (c) 2015 Patrick G. O'Neill
   Backbone Model Factory may be freely distributed under the MIT license
   https://github.com/misteroneill/backbone-model-factory
 */

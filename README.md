@@ -21,15 +21,11 @@ Additionally, collections using `ModelFactory` models that `fetch` data will alw
 
 `ModelFactory` makes sharing models between collections, views, routers, etc. almost completely hands-off.
 
-## Demo
-
-Coming soon!
-
 ## Dependencies
 
 `Backbone.ModelFactory` 1.2.0+ depends on the following libraries:
 
-- Underscore: tested against 1.5.2, but 1.2.0+ should work
+- Underscore: tested against 1.8.3, but 1.2.0+ should work
 - Backbone: 0.9.9+
 
 Earlier versions of `ModelFactory` will work with Backbone 0.9.0-1.0.0 and do not depend on Underscore directly.
@@ -93,9 +89,13 @@ Models created with `ModelFactory` will __not__ share their unique-enforcement c
 
 ## Potential Gotchas
 
-### Recursion and Relations
+### Relationships and Recursion
 
-If you are doing any sort of recursive relationships (models or collections within models) and then serializing those relationships you can run into some complex recursion-related problems. Also, I have not tried this library with `Backbone-Relational`, so use at your own risk!
+If you are using any sort of nested relationships (models or collections within models) and operating on those relationships in a recursive manner, it can cause an infinite loop if an identical model instance exists in its own relationship graph.
+
+For example, let's say a User has a collection of Posts and each Post has a User. Having an infinite path of object references (User -> Posts -> Post -> User -> Posts -> ad infinitum) is not harmful, but if you do any _automated serialization_ of these relationships (into JSON, etc), you might encounter an infinite loop if the serialization is unchecked.
+
+This entirely depends on how you're using Backbone and what you've built upon it.
 
 ### Caching and Wiping
 
