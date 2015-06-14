@@ -1,9 +1,24 @@
-var root = this;
+var assert = require('assert');
+var _ = require('underscore');
+var Backbone = require('../backbone-model-factory');
+
+var symbol = '+';
+var indent = '\n  ';
+var notice = symbol + ' Testing with Backbone ' + Backbone.VERSION + ' ' + symbol;
+var border = notice.split('').map(function () {
+  return symbol;
+}).join('');
+
+console.log([
+  indent, border,
+  indent, notice,
+  indent, border
+].join(''));
 
 describe('Backbone.ModelFactory', function () {
   'use strict';
 
-  var Test = root.Test = Backbone.ModelFactory({
+  var Test = Backbone.ModelFactory({
     defaults: {
       foo: 'bar'
     },
@@ -12,27 +27,33 @@ describe('Backbone.ModelFactory', function () {
     }
   });
 
-  var TestBare = root.TestBare = Backbone.ModelFactory();
+  var TestBare = Backbone.ModelFactory();
 
-  var TestCustomIdAttr = root.TestCustomIdAttr = Backbone.ModelFactory({
+  var TestCustomIdAttr = Backbone.ModelFactory({
     idAttribute: 'foo'
   });
 
-  var TestExtended = root.TestExtended = Backbone.ModelFactory(Test, {
+  var TestExtended = Backbone.ModelFactory(Test, {
     defaults: {
       foo: 'baz'
     }
   });
 
-  var TestCollection = root.TestCollection = Backbone.Collection.extend({
+  var TestCollection = Backbone.Collection.extend({
     model: Test,
-    url: 'test-fetch'
+    url: 'test-fetch',
+    sync: function (method, collection, options) {
+      options.success([
+        {id: 1, foo: 'test1'},
+        {id: 2, foo: 'test2'}
+      ]);
+    }
   });
 
   it('creates constructor functions', function () {
-    expect(typeof Test).toBe('function');
-    expect(typeof TestCustomIdAttr).toBe('function');
-    expect(typeof TestExtended).toBe('function');
+    assert.ok(_.isFunction(Test));
+    assert.ok(_.isFunction(TestCustomIdAttr));
+    assert.ok(_.isFunction(TestExtended));
   });
 
   describe('factory-generated constructors', function () {
@@ -48,92 +69,92 @@ describe('Backbone.ModelFactory', function () {
       var a = new Test({id: 1});
       var b = new Test();
 
-      expect(a.get('foo')).toBe('bar');
-      expect(a.methodOnTest).toBe(Test.prototype.methodOnTest);
+      assert.strictEqual(a.get('foo'), 'bar');
+      assert.strictEqual(a.methodOnTest, Test.prototype.methodOnTest);
 
-      expect(b.get('foo')).toBe('bar');
-      expect(b.methodOnTest).toBe(Test.prototype.methodOnTest);
+      assert.strictEqual(b.get('foo'), 'bar');
+      assert.strictEqual(b.methodOnTest, Test.prototype.methodOnTest);
 
-      expect(a).not.toBe(b);
+      assert.notStrictEqual(a, b);
     });
 
     it('instantiate objects with a custom `idAttribute`', function () {
       var a = new TestCustomIdAttr({foo: 'x'});
       var b = new TestCustomIdAttr();
 
-      expect(a.idAttribute).toBe('foo');
-      expect(a.get('foo')).toBe('x');
-      expect(b.idAttribute).toBe('foo');
-      expect(typeof b.get('foo')).toBe('undefined');
+      assert.strictEqual(a.idAttribute, 'foo');
+      assert.strictEqual(a.get('foo'), 'x');
+      assert.strictEqual(b.idAttribute, 'foo');
+      assert.ok(_.isUndefined(b.get('foo')));
 
-      expect(a).not.toBe(b);
+      assert.notStrictEqual(a, b);
     });
 
     it('instantiate objects with proper inheritance', function () {
       var a = new TestExtended();
 
-      expect(a.constructor).toBe(TestExtended);
-      expect(a.get('foo')).toBe('baz');
-      expect(a.methodOnTest).toBe(Test.prototype.methodOnTest);
+      assert.strictEqual(a.constructor, TestExtended);
+      assert.strictEqual(a.get('foo'), 'baz');
+      assert.strictEqual(a.methodOnTest, Test.prototype.methodOnTest);
     });
 
     it('instantiate objects which pass `instanceof` checks against the constructor and the actual model', function () {
       var a = new Test({id: 1});
-      expect(a instanceof Test).toBe(true);
-      expect(a instanceof Test._Model).toBe(true);
+      assert.ok(a instanceof Test);
+      assert.ok(a instanceof Test._Model);
     });
 
     it('return an existing instance if a duplicate value for `id` is given', function () {
       var a = new Test({id: 1});
-      expect(new Test({id: 1})).toBe(a);
-      expect(new Test({id: 2})).not.toBe(a);
+      assert.strictEqual(new Test({id: 1}), a);
+      assert.notStrictEqual(new Test({id: 2}), a);
     });
 
     it('return an existing instance with custom `idAttribute` if a duplicate value for `idAttribute` attribute is given', function () {
       var a = new TestCustomIdAttr({foo: 'x'});
 
-      expect(new TestCustomIdAttr({foo: 'x'})).toBe(a);
-      expect(new TestCustomIdAttr({foo: 'y'})).not.toBe(a);
+      assert.strictEqual(new TestCustomIdAttr({foo: 'x'}), a);
+      assert.notStrictEqual(new TestCustomIdAttr({foo: 'y'}), a);
     });
 
     it('return an updated existing instance if a duplicate `id` and new attributes are given', function () {
       var a = new Test({id: 1});
       var b = new Test({id: 1, foo: 'bar'});
 
-      expect(a).toBe(b);
-      expect(a.get('foo')).toBe('bar');
+      assert.strictEqual(a, b);
+      assert.strictEqual(a.get('foo'), 'bar');
     });
 
     it('store an instance when a new instance gains an `id` that did not exist', function () {
       var a = new Test();
 
       a.set({id: 4});
-      expect(Test._cache['4']).toBe(a);
+      assert.strictEqual(Test._cache['4'], a);
     });
 
     it('throw an error when an instance gains an `idAttribute` attribute value which already exists', function () {
       var a = new Test({id: 5});
       var b = new Test();
 
-      expect(function () {
+      assert.throws(function () {
         b.set({id: 5});
-      }).toThrow();
+      });
     });
 
     it('store an instance when a new instance with a custom `idAttribute` gains an `idAttribute` attribute value that did not exist', function () {
       var a = new TestCustomIdAttr();
 
       a.set({foo: 'x'});
-      expect(TestCustomIdAttr._cache.x).toBe(a);
+      assert.strictEqual(TestCustomIdAttr._cache.x, a);
     });
 
     it('throw an error when a new instance with a custom `idAttribute` to gain an `idAttribute` attribute value that already exists', function () {
       var a = new TestCustomIdAttr({foo: 'x'});
       var b = new TestCustomIdAttr();
 
-      expect(function () {
+      assert.throws(function () {
         b.set({foo: 'x'});
-      }).toThrow();
+      });
     });
 
     it('work when used as the `model` for a `Backbone.Collection`', function () {
@@ -143,48 +164,25 @@ describe('Backbone.ModelFactory', function () {
 
       var model = collection.first();
 
-      expect(model.constructor).toBe(Test);
-      expect(model.methodOnTest).toBe(Test.prototype.methodOnTest);
+      assert.strictEqual(model.constructor, Test);
+      assert.strictEqual(model.methodOnTest, Test.prototype.methodOnTest);
     });
 
     it('are able to be fetched from the server (#5)', function () {
-      var server = sinon.fakeServer.create();
-
-      server.autoRespond = true;
-      server.autoRespondAfter = 50;
-
-      server.respondWith(/test-fetch/, function (xhr) {
-        var results = [];
-
-        xhr.respond(
-          200,
-          {'Content-Type': 'application/json'},
-          JSON.stringify([
-            {id: 1, foo: 'test1'},
-            {id: 2, foo: 'test2'}
-          ])
-        );
-      });
-
       var collection = new TestCollection();
-      var request = collection.fetch();
 
-      waitsFor(function () {
-        return request.status === 200;
-      }, 'the request to return', 200);
+      collection.fetch();
 
-      runs(function () {
-        expect(collection.length).toBe(2);
-        expect(collection.at(0).get('foo')).toBe('test1');
-      });
+      assert.strictEqual(collection.length, 2);
+      assert.strictEqual(collection.at(0).get('foo'), 'test1');
     });
 
     it('generate instances which can `wipe` themselves from cache', function () {
       var a = new Test({id: 1});
 
-      expect(_.isFunction(a.wipe)).toBe(true);
+      assert.ok(_.isFunction(a.wipe));
       a.wipe();
-      expect(new Test({id: 1})).not.toBe(a);
+      assert.notStrictEqual(new Test({id: 1}), a);
     });
 
     it('can `wipe` an instance or instances depending on arguments', function () {
@@ -203,20 +201,20 @@ describe('Backbone.ModelFactory', function () {
         return _.sortBy(_.keys(Test._cache), _.identity).join('');
       };
 
-      expect(_.isFunction(Test.wipe)).toBe(true);
-      expect(strOfKeys()).toBe('1234567');
+      assert.ok(_.isFunction(Test.wipe), true);
+      assert.strictEqual(strOfKeys(), '1234567');
 
       Test.wipe(a);
-      expect(strOfKeys()).toBe('234567');
+      assert.strictEqual(strOfKeys(), '234567');
 
       Test.wipe([b, c]);
-      expect(strOfKeys()).toBe('4567');
+      assert.strictEqual(strOfKeys(), '4567');
 
       Test.wipe(x);
-      expect(strOfKeys()).toBe('67');
+      assert.strictEqual(strOfKeys(), '67');
 
       Test.wipe();
-      expect(strOfKeys()).toBe('');
+      assert.strictEqual(strOfKeys(), '');
     });
   });
 });

@@ -25,7 +25,7 @@ Additionally, collections using `ModelFactory` models that `fetch` data will alw
 
 `Backbone.ModelFactory` 1.2.0+ depends on the following libraries:
 
-- Underscore: tested against 1.8.3, but 1.2.0+ should work
+- Underscore: 1.2.0+
 - Backbone: 0.9.9+
 
 Earlier versions of `ModelFactory` will work with Backbone 0.9.0-1.0.0 and do not depend on Underscore directly.
@@ -133,11 +133,15 @@ In the example here, all the local variables ("jake", "joe1", etc) will be garba
 
 ### Inclusion
 
-There are 3 files in `/test/inclusion` and they account for the 3 supported methods of including this module. To execute these tests, simply open the HTML files in a browser or install the npm module `backbone` and run `node node-module.js`.
+There are 3 files in `test/inclusion` and they account for the 3 supported methods of including this module. To execute these tests, simply open the HTML files in a browser or install the npm dependencies and run `node test/inclusion/node-module.js`.
 
 ### Unit
 
-[Jasmine](http://pivotal.github.io/jasmine/) tests exist in `test/test.js`. To run, simply open `test/index.html` in a browser and choose a Backbone version to test against.
+[Mocha](http://mochajs.org/) tests exist in `test/test.js`.
+
+To run the tests, make sure development dependencies are installed and use `npm test`.
+
+To test against different versions of Backbone (or Underscore), install the version desired (e.g., `npm install backbone@~1.0.0`).
 
 ## Inspriation
 

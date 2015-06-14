@@ -20,5 +20,12 @@
     "sharing"
   ],
   "author": "Pat O'Neill <pgoneill@gmail.com>",
-  "license": "MIT"
+  "license": "MIT",
+  "scripts": {
+    "test": "./node_modules/mocha/bin/mocha test/test.js"
+  },
+  "devDependencies": {
+    "jquery": "~2.1.4",
+    "mocha": "~2.2.5"
+  }
 }
