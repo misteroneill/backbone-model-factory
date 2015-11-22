@@ -1,6 +1,6 @@
 {
   "name": "backbone-model-factory",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "description": "Provides a factory for generating model constructors that will never duplicate instances of a model with the same unique identifier. Useful for sharing model instances across views.",
   "homepage": "https://github.com/misteroneill/backbone-model-factory",
   "main": "backbone-model-factory.js",
