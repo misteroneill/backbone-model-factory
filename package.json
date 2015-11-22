@@ -2,14 +2,15 @@
   "name": "backbone-model-factory",
   "version": "1.2.0",
   "description": "Provides a factory for generating model constructors that will never duplicate instances of a model with the same unique identifier. Useful for sharing model instances across views.",
+  "homepage": "https://github.com/misteroneill/backbone-model-factory",
   "main": "backbone-model-factory.js",
   "repository": {
     "type": "git",
     "url": "git://github.com/misteroneill/backbone-model-factory.git"
   },
   "dependencies": {
-    "underscore": "~1.8.0",
-    "backbone": "~1.2.0"
+    "backbone": "^1.2.0",
+    "underscore": "^1.8.0"
   },
   "keywords": [
     "backbone",
@@ -22,10 +23,17 @@
   "author": "Pat O'Neill <pgoneill@gmail.com>",
   "license": "MIT",
   "scripts": {
-    "test": "./node_modules/mocha/bin/mocha test/test.js"
+    "build": "uglifyjs backbone-model-factory.js --mangle -o backbone-model-factory-min.js && bannerize backbone-model-factory-min.js",
+    "preversion": "npm run build && npm test",
+    "postversion": "git push && git push --tags",
+    "test": "mocha test/test.js"
   },
   "devDependencies": {
-    "jquery": "~2.1.4",
-    "mocha": "~2.2.5"
+    "bannerize": "^1.0.0",
+    "cowsay": "^1.1.2",
+    "jquery": "^2.1.4",
+    "mocha": "^2.2.5",
+    "sinon": "^1.17.2",
+    "uglify-js": "^2.6.0"
   }
 }

@@ -1,220 +1,532 @@
-var assert = require('assert');
+/* global afterEach, beforeEach, describe, it */
+
 var _ = require('underscore');
+var assert = require('assert');
+var cowsay = require('cowsay');
+var sinon = require('sinon');
 var Backbone = require('../backbone-model-factory');
 
-var symbol = '+';
-var indent = '\n  ';
-var notice = symbol + ' Testing with Backbone ' + Backbone.VERSION + ' ' + symbol;
-var border = notice.split('').map(function () {
-  return symbol;
-}).join('');
-
-console.log([
-  indent, border,
-  indent, notice,
-  indent, border
-].join(''));
+console.log(cowsay.say({
+  text: 'Testing with BackboOoOoOone ' + Backbone.VERSION
+}));
 
 describe('Backbone.ModelFactory', function () {
   'use strict';
 
-  var Test = Backbone.ModelFactory({
-    defaults: {
-      foo: 'bar'
-    },
-    methodOnTest: function () {
-      return true;
-    }
+  beforeEach(function () {
+    this.sinon = sinon.sandbox.create();
+
+    this.Test = Backbone.ModelFactory({
+      defaults: {
+        foo: 'bar'
+      },
+      methodOnTest: function () {
+        return true;
+      }
+    });
+
+    this.TestBare = Backbone.ModelFactory();
+
+    this.TestCustomIdAttr = Backbone.ModelFactory({
+      idAttribute: 'foo'
+    });
+
+    this.TestExtended = Backbone.ModelFactory(this.Test, {
+      defaults: {
+        foo: 'baz'
+      }
+    });
+
+    this.TestCollection = Backbone.Collection.extend({
+      model: this.Test,
+      url: 'test-fetch',
+      sync: function (method, collection, options) {
+        options.success([
+          {id: 1, foo: 'test1'},
+          {id: 2, foo: 'test2'}
+        ]);
+      }
+    });
   });
 
-  var TestBare = Backbone.ModelFactory();
+  afterEach(function () {
+    this.sinon.restore();
 
-  var TestCustomIdAttr = Backbone.ModelFactory({
-    idAttribute: 'foo'
-  });
-
-  var TestExtended = Backbone.ModelFactory(Test, {
-    defaults: {
-      foo: 'baz'
-    }
-  });
-
-  var TestCollection = Backbone.Collection.extend({
-    model: Test,
-    url: 'test-fetch',
-    sync: function (method, collection, options) {
-      options.success([
-        {id: 1, foo: 'test1'},
-        {id: 2, foo: 'test2'}
-      ]);
-    }
+    this.Test.off().wipe();
+    this.TestBare.off().wipe();
+    this.TestCustomIdAttr.off().wipe();
+    this.TestExtended.off().wipe();
   });
 
   it('creates constructor functions', function () {
-    assert.ok(_.isFunction(Test));
-    assert.ok(_.isFunction(TestCustomIdAttr));
-    assert.ok(_.isFunction(TestExtended));
+
+    assert.strictEqual(
+      typeof this.Test,
+      'function',
+      'the Test constructor is a function'
+    );
+
+    assert.strictEqual(
+      typeof this.TestCustomIdAttr,
+      'function',
+      'the TestCustomIdAttr constructor is a function'
+    );
+
+    assert.strictEqual(
+      typeof this.TestExtended,
+      'function',
+      'the TestExtended constructor is a function'
+    );
   });
 
-  describe('factory-generated constructors', function () {
+  it('instantiate objects with or without an `id`', function () {
+    var a = new this.Test({id: 1});
+    var b = new this.Test();
 
-    afterEach(function () {
-      Test.wipe();
-      TestBare.wipe();
-      TestCustomIdAttr.wipe();
-      TestExtended.wipe();
-    });
+    assert.strictEqual(
+      a.get('foo'),
+      'bar',
+      'an instance gets defaults from its model'
+    );
 
-    it('instantiate objects with or without an `id`', function () {
-      var a = new Test({id: 1});
-      var b = new Test();
+    assert.strictEqual(
+      a.methodOnTest,
+      this.Test.prototype.methodOnTest,
+      'an instance gets methods from its model'
+    );
 
-      assert.strictEqual(a.get('foo'), 'bar');
-      assert.strictEqual(a.methodOnTest, Test.prototype.methodOnTest);
+    assert.strictEqual(
+      b.get('foo'),
+      'bar',
+      'an instance with no `id` gets defaults from its model'
+    );
 
-      assert.strictEqual(b.get('foo'), 'bar');
-      assert.strictEqual(b.methodOnTest, Test.prototype.methodOnTest);
+    assert.strictEqual(
+      b.methodOnTest,
+      this.Test.prototype.methodOnTest,
+      'an instance with no `id` gets methods from its model'
+    );
 
-      assert.notStrictEqual(a, b);
-    });
+    assert.notStrictEqual(a, b, 'instances are separate objects');
+  });
 
-    it('instantiate objects with a custom `idAttribute`', function () {
-      var a = new TestCustomIdAttr({foo: 'x'});
-      var b = new TestCustomIdAttr();
+  it('instantiate objects with a custom `idAttribute`', function () {
+    var a = new this.TestCustomIdAttr({foo: 'x'});
+    var b = new this.TestCustomIdAttr();
 
-      assert.strictEqual(a.idAttribute, 'foo');
-      assert.strictEqual(a.get('foo'), 'x');
-      assert.strictEqual(b.idAttribute, 'foo');
-      assert.ok(_.isUndefined(b.get('foo')));
+    assert.strictEqual(
+      a.idAttribute,
+      'foo',
+      'an instance gets a custom `idAttribute` from its model'
+    );
 
-      assert.notStrictEqual(a, b);
-    });
+    assert.strictEqual(
+      a.get('foo'),
+      'x',
+      'an instance gets custom attributes'
+    );
 
-    it('instantiate objects with proper inheritance', function () {
-      var a = new TestExtended();
+    assert.strictEqual(
+      b.idAttribute,
+      'foo',
+      'an instance gets a custom `idAttribute` from its model'
+    );
 
-      assert.strictEqual(a.constructor, TestExtended);
-      assert.strictEqual(a.get('foo'), 'baz');
-      assert.strictEqual(a.methodOnTest, Test.prototype.methodOnTest);
-    });
+    assert.strictEqual(
+      typeof b.get('foo'),
+      'undefined',
+      'an instance gets custom attributes'
+    );
 
-    it('instantiate objects which pass `instanceof` checks against the constructor and the actual model', function () {
-      var a = new Test({id: 1});
-      assert.ok(a instanceof Test);
-      assert.ok(a instanceof Test._Model);
-    });
+    assert.notStrictEqual(a, b, 'instances are separate objects');
+  });
 
-    it('return an existing instance if a duplicate value for `id` is given', function () {
-      var a = new Test({id: 1});
-      assert.strictEqual(new Test({id: 1}), a);
-      assert.notStrictEqual(new Test({id: 2}), a);
-    });
+  it('instantiate objects with proper inheritance', function () {
+    var a = new this.TestExtended();
 
-    it('return an existing instance with custom `idAttribute` if a duplicate value for `idAttribute` attribute is given', function () {
-      var a = new TestCustomIdAttr({foo: 'x'});
+    assert.strictEqual(
+      a.constructor,
+      this.TestExtended,
+      'an instance has the correct constructor'
+    );
 
-      assert.strictEqual(new TestCustomIdAttr({foo: 'x'}), a);
-      assert.notStrictEqual(new TestCustomIdAttr({foo: 'y'}), a);
-    });
+    assert.strictEqual(
+      a.get('foo'),
+      'baz',
+      'an instance gets defaults from its model'
+    );
 
-    it('return an updated existing instance if a duplicate `id` and new attributes are given', function () {
-      var a = new Test({id: 1});
-      var b = new Test({id: 1, foo: 'bar'});
+    assert.strictEqual(
+      a.methodOnTest,
+      this.Test.prototype.methodOnTest,
+      'an instance may get methods from its model\'s super-class'
+    );
+  });
 
-      assert.strictEqual(a, b);
-      assert.strictEqual(a.get('foo'), 'bar');
-    });
+  it('instantiate objects which pass `instanceof` checks against the constructor and the actual model', function () {
+    var a = new this.Test({id: 1});
 
-    it('store an instance when a new instance gains an `id` that did not exist', function () {
-      var a = new Test();
+    assert(
+      a instanceof this.Test,
+      'an instance is an `instanceof` its constructor'
+    );
 
-      a.set({id: 4});
-      assert.strictEqual(Test._cache['4'], a);
-    });
+    assert(
+      a instanceof this.Test._Model,
+      'an instance is also an `instanceof` its model'
+    );
+  });
 
-    it('throw an error when an instance gains an `idAttribute` attribute value which already exists', function () {
-      var a = new Test({id: 5});
-      var b = new Test();
+  it('return an existing instance if a duplicate value for `id` is given', function () {
+    var a = new this.Test({id: 1});
 
-      assert.throws(function () {
-        b.set({id: 5});
-      });
-    });
+    assert.strictEqual(
+      new this.Test({id: 1}),
+      a,
+      'constructors return existing instances for duplicate `id`s'
+    );
 
-    it('store an instance when a new instance with a custom `idAttribute` gains an `idAttribute` attribute value that did not exist', function () {
-      var a = new TestCustomIdAttr();
+    assert.notStrictEqual(
+      new this.Test({id: 2}),
+      a,
+      'constructors return new instances for new `id`s'
+    );
+  });
 
-      a.set({foo: 'x'});
-      assert.strictEqual(TestCustomIdAttr._cache.x, a);
-    });
+  it('return an existing instance with custom `idAttribute` if a duplicate value for `idAttribute` attribute is given', function () {
+    var a = new this.TestCustomIdAttr({foo: 'x'});
 
-    it('throw an error when a new instance with a custom `idAttribute` to gain an `idAttribute` attribute value that already exists', function () {
-      var a = new TestCustomIdAttr({foo: 'x'});
-      var b = new TestCustomIdAttr();
+    assert.strictEqual(
+      new this.TestCustomIdAttr({foo: 'x'}),
+      a,
+      'constructors return existing instances for duplicate `id`s'
+    );
 
-      assert.throws(function () {
+    assert.notStrictEqual(
+      new this.TestCustomIdAttr({foo: 'y'}),
+      a,
+      'constructors return new instances for new `id`s'
+    );
+  });
+
+  it('return an updated existing instance if a duplicate `id` and new attributes are given', function () {
+    var a = new this.Test({id: 1});
+    var b = new this.Test({id: 1, foo: 'bar'});
+
+    assert.strictEqual(
+      a,
+      b,
+      'constructors return existing instances for duplicate `id`s'
+    );
+
+    assert.strictEqual(
+      a.get('foo'),
+      'bar',
+      'subsequent duplicate instances update all other instances'
+    );
+  });
+
+  it('store an instance when a new instance gains an `id` that did not exist', function () {
+    var a = new this.Test();
+
+    a.set({id: 4});
+
+    assert.strictEqual(
+      this.Test._cache['4'],
+      a,
+      'an instance is cached when it gains an `id`'
+    );
+  });
+
+  it('throw an error when an instance gains an `idAttribute` attribute value which already exists', function () {
+    new this.Test({id: 5});
+    var b = new this.Test();
+
+    assert.throws(function () {
+      b.set({id: 5});
+    }, Error, 'an error is thrown when an instance gains a duplicate `id`');
+  });
+
+  it('store an instance when a new instance with a custom `idAttribute` gains an `idAttribute` attribute value that did not exist', function () {
+    var a = new this.TestCustomIdAttr();
+
+    a.set({foo: 'x'});
+
+    assert.strictEqual(
+      this.TestCustomIdAttr._cache.x,
+      a,
+      'an instance is cached when it gains a custom `idAttribute` value'
+    );
+  });
+
+  it('throw an error when a new instance with a custom `idAttribute` to gain an `idAttribute` attribute value that already exists', function () {
+    new this.TestCustomIdAttr({foo: 'x'});
+    var b = new this.TestCustomIdAttr();
+
+    assert.throws(
+      function () {
         b.set({foo: 'x'});
-      });
-    });
+      },
+      Error,
+      'an error is thrown when an instance gains a duplicate custom `idAttribute` value'
+    );
+  });
 
-    it('work when used as the `model` for a `Backbone.Collection`', function () {
-      var collection = new TestCollection([
-        {foo: 'boo'}
-      ]);
+  it('work when used as the `model` for a `Backbone.Collection`', function () {
+    var collection = new this.TestCollection([
+      {foo: 'boo'}
+    ]);
 
-      var model = collection.first();
+    var model = collection.first();
 
-      assert.strictEqual(model.constructor, Test);
-      assert.strictEqual(model.methodOnTest, Test.prototype.methodOnTest);
-    });
+    assert.strictEqual(
+      model.constructor,
+      this.Test,
+      'models constructed through a collection have the correct constructor'
+    );
 
-    it('are able to be fetched from the server (#5)', function () {
-      var collection = new TestCollection();
+    assert.strictEqual(
+      model.methodOnTest,
+      this.Test.prototype.methodOnTest,
+      'models constructed through a collection have inherited methods'
+    );
+  });
 
-      collection.fetch();
+  it('are able to be fetched from the server (#5)', function () {
+    var collection = new this.TestCollection();
 
-      assert.strictEqual(collection.length, 2);
-      assert.strictEqual(collection.at(0).get('foo'), 'test1');
-    });
+    collection.fetch();
 
-    it('generate instances which can `wipe` themselves from cache', function () {
-      var a = new Test({id: 1});
+    assert.strictEqual(
+      collection.length,
+      2,
+      'models were fetched from the server'
+    );
 
-      assert.ok(_.isFunction(a.wipe));
-      a.wipe();
-      assert.notStrictEqual(new Test({id: 1}), a);
-    });
+    assert.strictEqual(
+      collection.at(0).get('foo'),
+      'test1',
+      'the models look as expected'
+    );
+  });
 
-    it('can `wipe` an instance or instances depending on arguments', function () {
-      var a = new Test({id: 1});
-      var b = new Test({id: 2});
-      var c = new Test({id: 3});
-      var d = new Test({id: 6});
-      var e = new Test({id: 7});
+  it('generate instances which can `wipe` themselves from cache', function () {
+    var a = new this.Test({id: 1});
 
-      var x = new TestCollection([
-        {id: 4},
-        {id: 5}
-      ]);
+    assert.strictEqual(
+      typeof a.wipe,
+      'function',
+      '`wipe` should be a method'
+    );
 
-      var strOfKeys = function () {
-        return _.sortBy(_.keys(Test._cache), _.identity).join('');
-      };
+    a.wipe();
 
-      assert.ok(_.isFunction(Test.wipe), true);
-      assert.strictEqual(strOfKeys(), '1234567');
+    assert.notStrictEqual(
+      new this.Test({id: 1}),
+      a,
+      'newly created instances with previously existing `id`s are not equal to previously cached instances'
+    );
+  });
 
-      Test.wipe(a);
-      assert.strictEqual(strOfKeys(), '234567');
+  it('can `wipe` an instance or instances depending on arguments', function () {
+    var a = new this.Test({id: 1});
+    var b = new this.Test({id: 2});
+    var c = new this.Test({id: 3});
+    var d = new this.Test({id: 6});
+    var e = new this.Test({id: 7});
 
-      Test.wipe([b, c]);
-      assert.strictEqual(strOfKeys(), '4567');
+    var x = new this.TestCollection([
+      {id: 4},
+      {id: 5}
+    ]);
 
-      Test.wipe(x);
-      assert.strictEqual(strOfKeys(), '67');
+    var strOfKeys = _.bind(function () {
+      return _.sortBy(_.keys(this.Test._cache), _.identity).join('');
+    }, this);
 
-      Test.wipe();
-      assert.strictEqual(strOfKeys(), '');
-    });
+    assert.strictEqual(typeof this.Test.wipe, 'function');
+    assert.strictEqual(strOfKeys(), '1234567', 'should have all instances cached');
+
+    this.Test.wipe(a);
+    assert.strictEqual(strOfKeys(), '234567', '1 should have been wiped');
+
+    this.Test.wipe([b, c]);
+    assert.strictEqual(strOfKeys(), '4567', '2 and 3 should have been wiped');
+
+    this.Test.wipe(x);
+    assert.strictEqual(strOfKeys(), '67', '4 and 5 should have been wiped');
+
+    this.Test.wipe();
+    assert.strictEqual(strOfKeys(), '', 'cache should be empty');
+  });
+
+  it('triggers events on the instance and constructor when an instance `wipe`s itself', function () {
+    var Test = this.Test;
+    var a = new Test({id: 1});
+    var aSpy = this.sinon.spy();
+    var wipeSpy = this.sinon.spy();
+    var someSpy = this.sinon.spy();
+    var allSpy = this.sinon.spy();
+
+    var spyArgsAssertions = function(args) {
+
+      assert.strictEqual(
+        args[0],
+        Test,
+        'the spy was called with the constructor first'
+      );
+
+      assert.strictEqual(
+        args[1].length,
+        1,
+        'the spy was called with an array of wiped instances second'
+      );
+
+      assert.strictEqual(
+        args[1][0],
+        a,
+        'the array contained only the instance wiped'
+      );
+
+      assert.strictEqual(
+        args[2].length,
+        0,
+        'the spy was called with an array of remaining instances, which was empty'
+      );
+    };
+
+    Test.on('wipe', wipeSpy);
+    Test.on('wipe:some', someSpy);
+    Test.on('wipe:all', allSpy);
+
+    a.on('wipe', aSpy);
+    a.wipe();
+
+    assert.notStrictEqual(
+      Test._cache['1'],
+      a,
+      'the wiped instance should no longer be in cache'
+    );
+
+    assert(
+      aSpy.calledOnce,
+      'the wiped instance triggered a "wipe" event'
+    );
+
+    assert(
+      aSpy.getCall(0).calledWithExactly(a),
+      'the callback was called with the instance'
+    );
+
+    assert(
+      wipeSpy.calledOnce,
+      'the "wipe" event was triggered once'
+    );
+
+    spyArgsAssertions(wipeSpy.getCall(0).args);
+
+    assert(
+      !someSpy.called,
+      'the "wipe:some" spy was not called'
+    );
+
+    assert(
+      allSpy.calledOnce,
+      'the "wipe:all" spy was called once'
+    );
+
+    spyArgsAssertions(allSpy.getCall(0).args);
+  });
+
+  it('triggers events on the instance and constructor when the constructor `wipe`s itself', function () {
+    var Test = this.Test;
+    var a = new Test({id: 1});
+    var b = new Test({id: 2});
+    var aSpy = this.sinon.spy();
+    var bSpy = this.sinon.spy();
+    var wipeSpy = this.sinon.spy();
+    var someSpy = this.sinon.spy();
+    var allSpy = this.sinon.spy();
+
+    var spyArgsAssertions = function(args) {
+
+      assert.strictEqual(
+        args[0],
+        Test,
+        'the spy was called with the constructor first'
+      );
+
+      assert.strictEqual(
+        args[1].length,
+        1,
+        'the spy was called with an array of wiped instances second'
+      );
+
+      assert.strictEqual(
+        args[1][0],
+        b,
+        'the array contained only the instance wiped'
+      );
+
+      assert.strictEqual(
+        args[2].length,
+        1,
+        'the spy was called with an array of remaining instances'
+      );
+
+      assert.strictEqual(
+        args[2][0],
+        a,
+        'the array contained only the instance NOT wiped'
+      );
+    };
+
+    Test.on('wipe', wipeSpy);
+    Test.on('wipe:some', someSpy);
+    Test.on('wipe:all', allSpy);
+
+    a.on('wipe', aSpy);
+    b.on('wipe', bSpy);
+    b.wipe();
+
+    assert.notStrictEqual(
+      Test._cache['2'],
+      b,
+      'the wiped instance should no longer be in cache'
+    );
+
+    assert(
+      !aSpy.called,
+      'the remaining instance triggered no event'
+    );
+
+    assert(
+      bSpy.calledOnce,
+      'the wiped instance triggered a "wipe" event'
+    );
+
+    assert(
+      bSpy.getCall(0).calledWithExactly(b),
+      'the callback was called with the instance'
+    );
+
+    assert(
+      wipeSpy.calledOnce,
+      'the "wipe" event was triggered once'
+    );
+
+    spyArgsAssertions(wipeSpy.getCall(0).args);
+
+    assert(
+      !allSpy.called,
+      'the "wipe:all" spy was not called'
+    );
+
+    assert(
+      someSpy.calledOnce,
+      'the "wipe:some" spy was called once'
+    );
+
+    spyArgsAssertions(someSpy.getCall(0).args);
   });
 });
